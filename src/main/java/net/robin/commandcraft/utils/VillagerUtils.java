@@ -5,11 +5,13 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
-import net.minecraft.world.poi.PointOfInterestType;
+import net.minecraft.entity.ai.brain.Brain;
+import net.minecraft.entity.ai.brain.task.Task;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.pathing.Path;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.List;
 import java.util.Optional;
 
 public class VillagerUtils {
@@ -71,3 +73,13 @@ public class VillagerUtils {
         }
     }
 }
+
+
+
+
+
+
+
+// Problem: Villager gets distracted after being ordered to move!
+// - Maybe we can construct a new brain specifically built for conversations. we'll see if minecraft allows that. This is good because
+//   it allows for a whole lot more flexibility later on.
