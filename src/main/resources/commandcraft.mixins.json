@@ -3,7 +3,9 @@
 	"package": "net.robin.commandcraft.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
-		"ExampleMixin"
+		"VillagerEntityMixin",
+		"ActivityAccessor",
+		"VillagerTaskListProviderMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
