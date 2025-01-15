@@ -1,6 +1,7 @@
 package net.robin.commandcraft.utils;
 
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -75,8 +76,9 @@ public class VillagerUtils {
     /**
      * Sets Villager to "in conversation mode". Triggers ConversationTask.
       */
-    public static void startConversation(VillagerEntity villager) {
+    public static void startConversation(VillagerEntity villager, PlayerEntity player) {
         VillagerStateManager.setState(villager, VillagerState.IN_CONVERSATION, true);
+        VillagerStateManager.setState(villager, VillagerState.CONVERSATION_PARTNER, player.getUuidAsString());
     }
 
     /**
@@ -84,6 +86,7 @@ public class VillagerUtils {
       */
     public static void endConversation(VillagerEntity villager) {
         VillagerStateManager.setState(villager, VillagerState.IN_CONVERSATION, false);
+        VillagerStateManager.setState(villager, VillagerState.CONVERSATION_PARTNER, "");
     }
 
     /**

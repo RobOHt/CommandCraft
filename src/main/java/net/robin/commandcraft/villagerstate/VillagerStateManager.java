@@ -1,8 +1,10 @@
 package net.robin.commandcraft.villagerstate;
 
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +36,11 @@ public class VillagerStateManager {
             case IN_CONVERSATION:
                 if (!(value instanceof Boolean)) {
                     throw new IllegalArgumentException("IN_CONVERSATION state must be a boolean.");
+                }
+                break;
+            case CONVERSATION_PARTNER:
+                if (!(value instanceof String)) {
+                    throw new IllegalArgumentException("CONVERSATION_PARTNER state must be a string.");
                 }
                 break;
             case AGE:
@@ -101,6 +108,9 @@ public class VillagerStateManager {
                 case IN_CONVERSATION:
                     stateNbt.putBoolean(state.name(), (Boolean) value);
                     break;
+                case CONVERSATION_PARTNER:
+                    stateNbt.putString(state.name(), (String) value);
+                    break;
                 case AGE:
                     stateNbt.putInt(state.name(), (Integer) value);
                     break;
@@ -128,6 +138,9 @@ public class VillagerStateManager {
                     switch (state) {
                         case IN_CONVERSATION:
                             setState(villager, state, stateNbt.getBoolean(state.name()));
+                            break;
+                        case CONVERSATION_PARTNER:
+                            setState(villager, state, stateNbt.getString(state.name()));
                             break;
                         case AGE:
                             setState(villager, state, stateNbt.getInt(state.name()));

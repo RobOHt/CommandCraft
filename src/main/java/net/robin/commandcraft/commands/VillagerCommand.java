@@ -172,8 +172,8 @@ public class VillagerCommand {
         Optional<VillagerEntity> nearestVillager = getNearestVillager(source);
         if (nearestVillager.isPresent()) {
             VillagerEntity villager = nearestVillager.get();
-            VillagerUtils.startConversation(villager);
-            player.sendMessage(Text.literal("Conversation began."), false);
+            VillagerUtils.startConversation(villager, player);
+            player.sendMessage(Text.literal("Starting conversation..."), false);
         } else {
             player.sendMessage(Text.literal("No villager nearby."), false);
         }

@@ -33,7 +33,7 @@ public class VillagerTaskListProviderMixin {
         // Create a new ImmutableList with your custom task added
         ImmutableList<Pair<Integer, ? extends Task<? super VillagerEntity>>> newTasks = ImmutableList.<Pair<Integer, ? extends Task<? super VillagerEntity>>>builder()
                 .addAll(originalTasks)
-                .add(Pair.of(0, new ConversationTask())) // Added ConversationTask to core tasks with the highest priority (0 priority).
+                .add(Pair.of(1, new ConversationTask())) // Added ConversationTask to core tasks with the 2nd highest priority (1 priority).
                 .build();
 
         // Set the modified list as the return value
