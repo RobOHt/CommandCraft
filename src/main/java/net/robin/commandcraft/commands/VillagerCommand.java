@@ -15,6 +15,9 @@ import static net.minecraft.server.command.CommandManager.literal;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import net.robin.commandcraft.CommandCraftClient;
+import net.robin.commandcraft.LLM.LLM;
 import net.robin.commandcraft.utils.VillagerUtils;
 
 public class VillagerCommand {
@@ -34,7 +37,7 @@ public class VillagerCommand {
                         .executes(context -> moveVillagerToBed(context.getSource())))
                 .then(CommandManager.literal("gotoworkstation")
                         .executes(context -> moveVillagerToWorkstation(context.getSource())))
-                .then(CommandManager.literal("startconversation")
+                .then(CommandManager.literal("startConversation")
                         .executes(context -> startConversation(context.getSource())))
                 .then(CommandManager.literal("getConversationState")
                         .executes(context -> getConversationState(context.getSource())))
@@ -158,6 +161,9 @@ public class VillagerCommand {
             System.out.println(result2);
             player.sendMessage(Text.literal("Active Activities: "));
             player.sendMessage(Text.literal(result2));
+
+            LLM llm = CommandCraftClient.getInstance().getLLM();
+            player.sendMessage(Text.literal(llm.ask("Hello World!")));
         } else {
             player.sendMessage(Text.literal("No villager nearby."), false);
         }

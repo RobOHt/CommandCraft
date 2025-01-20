@@ -6,11 +6,8 @@ import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.village.raid.Raid;
-import net.minecraft.village.raid.RaidManager;
 import net.minecraft.world.World;
 import net.robin.commandcraft.villagerstate.VillagerState;
-
 import java.util.UUID;
 
 import static net.robin.commandcraft.utils.VillagerUtils.endConversation;
@@ -48,7 +45,7 @@ public class ConversationTask extends MultiTickTask<VillagerEntity> {
         String playerEntityUUID = getState(villagerEntity, VillagerState.CONVERSATION_PARTNER, String.class);
 
         // Get that playerEntity by searching for them in the world the villager is currently living in
-        if (playerEntityUUID == null || playerEntityUUID == "") return false;
+        if (playerEntityUUID == null || playerEntityUUID == "") return false;  // An extra check to prevent crash
         this.world = villagerEntity.getWorld();
         try {
             this.conversationTarget = this.world.getPlayerByUuid(UUID.fromString(playerEntityUUID));
@@ -106,7 +103,6 @@ public class ConversationTask extends MultiTickTask<VillagerEntity> {
         }
 
         // Additional criteria 4: conversation ends when there is a raid
-
         boolean activeRaid = brain.hasActivity(Activity.PRE_RAID) || brain.hasActivity(Activity.RAID);
         if (activeRaid) {
             System.out.println("Conversation ended because there is a raid!");
