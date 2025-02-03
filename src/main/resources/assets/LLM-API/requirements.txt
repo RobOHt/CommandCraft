@@ -1,1 +1,4 @@
 Flask==2.3.2
+transformers~=4.48.1
+ollama~=0.4.7
+openai~=1.60.1

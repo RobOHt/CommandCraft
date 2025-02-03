@@ -3,6 +3,7 @@ package net.robin.commandcraft;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.robin.commandcraft.commands.VillagerCommand;
+import net.robin.commandcraft.commands.AskCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,7 @@ public class CommandCraft implements ModInitializer {
 	public static void registerVillagerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			VillagerCommand.register(dispatcher);
+			AskCommand.register(dispatcher);
 		});
 	}
 }

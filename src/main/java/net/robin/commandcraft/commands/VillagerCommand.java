@@ -161,9 +161,6 @@ public class VillagerCommand {
             System.out.println(result2);
             player.sendMessage(Text.literal("Active Activities: "));
             player.sendMessage(Text.literal(result2));
-
-            LLM llm = CommandCraftClient.getInstance().getLLM();
-            player.sendMessage(Text.literal(llm.ask("Hello World!")));
         } else {
             player.sendMessage(Text.literal("No villager nearby."), false);
         }
