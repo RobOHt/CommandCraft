@@ -6,6 +6,8 @@ import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
 import net.minecraft.world.World;
 import net.robin.commandcraft.villagerstate.VillagerState;
 import java.util.UUID;
@@ -31,20 +33,23 @@ public class ConversationTask extends MultiTickTask<VillagerEntity> {
     }
 
     /**
-     * ShouldRun defines criteria for a villager to run the current task, i.e. perform conversation. They are:
-     *      1. the villager is alive;
-     *      2. there must be a nearest visible player;
-     *      3. the villager is in conversation (or rather, is asked to talk with the player).
+     * ShouldRun checks whether the villagerEntity should start ConversationTask by checking if
+     * <ul>
+     *     <li>the <code>isInConversation</code> flag is up;</li>
+     *     <li>the villager is alive;</li>
+     *     <li>the conversation target is not <code>null</code>;</li>
+     *     <li>and the villager is not asleep;.</li>
+     * </ul>
      *
      * @param serverWorld the current server world
      * @param villagerEntity the current villager
-     * @return whether the current task should run
+     * @return whether the current task should initiate
      */
     protected boolean shouldRun(ServerWorld serverWorld, VillagerEntity villagerEntity) {
         // Get the UUID of the player that villagerEntity is talking to
         String playerEntityUUID = getState(villagerEntity, VillagerState.CONVERSATION_PARTNER, String.class);
 
-        // Get that playerEntity by searching for them in the world the villager is currently living in
+        // Get that playerEntity by searching for its UUID in the world the villager is currently living in
         if (playerEntityUUID == null || playerEntityUUID == "") return false;  // An extra check to prevent crash
         this.world = villagerEntity.getWorld();
         try {
@@ -54,9 +59,10 @@ public class ConversationTask extends MultiTickTask<VillagerEntity> {
         }
 
         // Check for start conditions
-        boolean shouldStartConversation = villagerEntity.isAlive()
-                                            && this.conversationTarget != null
-                                            && isInConversation(villagerEntity);
+        boolean shouldStartConversation = isInConversation(villagerEntity)
+                && villagerEntity.isAlive()
+                && conversationTarget != null
+                && !villagerEntity.isSleeping();
         if (shouldStartConversation) {
             System.out.println("Conversation began.");
         }
@@ -64,24 +70,50 @@ public class ConversationTask extends MultiTickTask<VillagerEntity> {
     }
 
     /**
-     * Task continuation criteria. They are {@linkplain #shouldRun shouldRun} criteria plus a number of additional
-     * criteria. Those conditions are checked every tick, and if one of them fail, the conversation ends. They are there
-     * to prevent villagers from keep talking to players despite being hit, or when it's time to sleep, and etc.
+     * Checks whether ConversationTask should continue for the villagerEntity by checking if:
+     * <ul>
+     *     <li>the <code>isInConversation</code> flag is up; </li>
+     *     <li>and the extra conditions defined by {@linkplain #taskIsAvailable continueTask} are also met.</li>
+     * </ul>
+     * @param serverWorld the current server world
+     * @param villagerEntity the current villager
+     * @param l time. Not actually used.
+     * @return whether the current task should continue.
      */
     protected boolean shouldKeepRunning(ServerWorld serverWorld, VillagerEntity villagerEntity, long l) {
+        return isInConversation(villagerEntity) && taskIsAvailable(villagerEntity, this.conversationTarget);
+    }
+
+    /**
+     * Checks whether the ConversationTask is available for continuation.
+     * It returns <code>true</code> unless:
+     * <ul>
+     *   <li>The villager is dead, the conversation target is <code>null</code>, or the villager is sleeping;</li>
+     *   <li>The conversation target is too far away;</li>
+     *   <li>The villager is panicking, the bell is ringing, or there is an impending raid;</li>
+     *   <li>The villager is about to sleep;</li>
+     *   <li>There is an active raid.</li>
+     * </ul>
+     *
+     * @param villagerEntity The villager in question.
+     * @param conversationTarget The entity attempting to start the conversation.
+     * @return <code>true</code> if the conversation should start or continue; <code>false</code> otherwise.
+     */
+    public static boolean taskIsAvailable(VillagerEntity villagerEntity, PlayerEntity conversationTarget) {
         // shouldKeepConversation holds base continuation criteria.
         boolean shouldKeepConversation = villagerEntity.isAlive()
-                                            && this.conversationTarget != null
-                                            && isInConversation(villagerEntity)
-                                            && !villagerEntity.isSleeping();
+                && conversationTarget != null
+                && !villagerEntity.isSleeping();
         if (!shouldKeepConversation) {
             System.out.println("Conversation ended naturally.");
+            villagerEntity.playAmbientSound();
             return false;
         }
 
         // Additional criteria 1: conversation ends when player goes too far away.
-        if (villagerEntity.squaredDistanceTo(this.conversationTarget) > 25.0) {
+        if (villagerEntity.squaredDistanceTo(conversationTarget) > 25.0) {
             System.out.println("Conversation ended because the player is too far away.");
+            villagerEntity.playSound(SoundEvents.ENTITY_VILLAGER_NO, 1.5F, villagerEntity.getSoundPitch());
             return false;
         }
 
@@ -90,15 +122,19 @@ public class ConversationTask extends MultiTickTask<VillagerEntity> {
         for (Task<?> task : brain.getRunningTasks()) {
             if (task instanceof PanicTask || task instanceof HideWhenBellRingsTask || task instanceof StartRaidTask) {
                 System.out.println("Conversation ended because there's something more important to do!");
+                villagerEntity.playSound(SoundEvents.ENTITY_VILLAGER_NO, 1.5F, villagerEntity.getSoundPitch());
+                conversationTarget.sendMessage(Text.literal("I got to go!"), true);
                 return false;
             }
         }
 
         // Additional criteria 3: conversation ends when it's time to sleep.
         boolean timeToSleep = villagerEntity.getWorld().getRegistryKey().equals(World.OVERWORLD) &&  // In the Overworld
-                                villagerEntity.getWorld().getTimeOfDay() % 24000 >= 12000;  // Nighttime
+                villagerEntity.getWorld().getTimeOfDay() % 24000 >= 12000;  // Nighttime
         if (timeToSleep) {
             System.out.println("Conversation ended because it's time to sleep!");
+            villagerEntity.playAmbientSound();
+            conversationTarget.sendMessage(Text.literal("Shh! It's dark out there!"), true);
             return false;
         }
 
@@ -106,6 +142,8 @@ public class ConversationTask extends MultiTickTask<VillagerEntity> {
         boolean activeRaid = brain.hasActivity(Activity.PRE_RAID) || brain.hasActivity(Activity.RAID);
         if (activeRaid) {
             System.out.println("Conversation ended because there is a raid!");
+            villagerEntity.playSound(SoundEvents.ENTITY_VILLAGER_NO, 1.5F, villagerEntity.getSoundPitch());
+            conversationTarget.sendMessage(Text.literal("RAID! I got to go!!!"), true);
             return false;
         }
 
@@ -120,7 +158,7 @@ public class ConversationTask extends MultiTickTask<VillagerEntity> {
     }
 
     /**
-     * Stuff to do when task terminates. Forgets walk target and look target, and sets IN_CONVERSATION state to false.
+     * Stuff to do when task terminates. Forgets walk target and look target, and sets <code>IN_CONVERSATION</code> state to false.
      */
     protected void finishRunning(ServerWorld serverWorld, VillagerEntity villagerEntity, long l) {
         Brain<?> brain = villagerEntity.getBrain();

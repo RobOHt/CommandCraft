@@ -210,6 +210,6 @@ public class VillagerCommand {
     private static Optional<VillagerEntity> getNearestVillager(ServerCommandSource source) {
         ServerPlayerEntity player = source.getPlayer();
         ServerWorld world = source.getWorld();
-        return VillagerUtils.getNearestVillager(world, player, 10);
+        return VillagerUtils.getNearestVillager(30);
     }
 }

@@ -1,9 +1,10 @@
 package net.robin.commandcraft.utils;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
@@ -12,6 +13,10 @@ import net.minecraft.util.math.Vec3d;
 import net.robin.commandcraft.villagerstate.VillagerState;
 import net.robin.commandcraft.villagerstate.VillagerStateManager;
 import java.util.Optional;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.entity.Entity;
+import net.robin.commandcraft.villagertask.ConversationTask;
+
 
 public class VillagerUtils {
 
@@ -43,12 +48,25 @@ public class VillagerUtils {
         villager.getBrain().forget(MemoryModuleType.JOB_SITE);
     }
 
+
     /**
-     * Gets the nearest villager to player within a 10-block radius
-      */
-    public static Optional<VillagerEntity> getNearestVillager(ServerWorld world, ServerPlayerEntity player, int radius) {
-        return world.getEntitiesByClass(VillagerEntity.class, player.getBoundingBox().expand(radius), villager -> true)
-                .stream().findFirst();
+     * Gets the villager that the player is pointing at within a specified radius.
+     */
+    public static Optional<VillagerEntity> getNearestVillager(int radius) {
+        // Find the targeted entity
+        HitResult hitResult = MinecraftClient.getInstance().crosshairTarget;
+
+        // Check if it's a villager that is within range
+        if (hitResult.getType() == HitResult.Type.ENTITY) {
+            EntityHitResult entityHit = (EntityHitResult) hitResult;
+            Entity entity = entityHit.getEntity();
+            if (entity instanceof VillagerEntity villager && entity.squaredDistanceTo(MinecraftClient.getInstance().player) < radius) {
+                return Optional.of(villager);
+            }
+        }
+
+        // No villager was found otherwise
+        return Optional.empty();
     }
 
     /**
@@ -74,11 +92,17 @@ public class VillagerUtils {
     }
 
     /**
-     * Sets Villager to "in conversation mode". Triggers ConversationTask.
+     * Sets Villager to "in conversation mode". Triggers ConversationTask <b><u>if its trigger conditions are met</u></b>.
+     * @return <code>true</code> if the conversation was started, <code>false</code> otherwise.
       */
-    public static void startConversation(VillagerEntity villager, PlayerEntity player) {
-        VillagerStateManager.setState(villager, VillagerState.IN_CONVERSATION, true);
-        VillagerStateManager.setState(villager, VillagerState.CONVERSATION_PARTNER, player.getUuidAsString());
+    public static boolean startConversation(VillagerEntity villager, PlayerEntity player) {
+        if (ConversationTask.taskIsAvailable(villager, player)) {
+            VillagerStateManager.setState(villager, VillagerState.IN_CONVERSATION, true);
+            VillagerStateManager.setState(villager, VillagerState.CONVERSATION_PARTNER, player.getUuidAsString());
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -90,7 +114,7 @@ public class VillagerUtils {
     }
 
     /**
-     * Returns whether the villager is in conversation.
+     * Returns whether the villager is in conversation. This is actually a signal flag for ConversationTask.
       */
     public static boolean isInConversation(VillagerEntity villager) {
         return Boolean.TRUE.equals(VillagerStateManager.getState(villager, VillagerState.IN_CONVERSATION, Boolean.class));

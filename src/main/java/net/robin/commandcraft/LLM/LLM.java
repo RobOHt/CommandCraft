@@ -1,6 +1,9 @@
 package net.robin.commandcraft.LLM;
 
+import com.google.gson.JsonObject;
+import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 
 import java.io.BufferedReader;
@@ -67,9 +70,9 @@ public class LLM {
     /**
      * Sends a prompt to the LLM server and streams the response.
      * @param prompt Your LLM prompt.
-     * @param callback A function to process each received chunk of data.
+     * @param callback A function to process each received chunk of data. E.g. <code>System.out::println()</code>
      */
-    public void ask(String prompt, Consumer<String> callback) {
+    public void ask(String prompt, String playerID, String villagerID, Consumer<String> callback) {
         if (!llmServer.isRunning()) {
             throw new IllegalStateException("LLM server is not running.");
         }
@@ -82,7 +85,11 @@ public class LLM {
             conn.setDoOutput(true);
 
             // Send the input text as JSON
-            String jsonInput = "{\"input\": \"" + prompt + "\"}";
+            JsonObject json = new JsonObject();
+            json.addProperty("input", prompt);
+            json.addProperty("player", playerID);
+            json.addProperty("villager", villagerID);
+            String jsonInput = json.toString();
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(jsonInput.getBytes(StandardCharsets.UTF_8));
                 os.flush();
@@ -90,7 +97,7 @@ public class LLM {
 
             // Read and stream response character-by-character
             try (InputStreamReader isr = new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)) {
-                char[] buffer = new char[256]; // Buffer size for reading chunks
+                char[] buffer = new char[16]; // Buffer size for reading chunks
                 int charsRead;
                 while ((charsRead = isr.read(buffer)) != -1) {
                     String chunk = new String(buffer, 0, charsRead); // Convert buffer to string
@@ -107,25 +114,28 @@ public class LLM {
      * @param prompt a message to the LLM
      * @param player The player entity to whom the response will be sent.
      */
-    public void askAtActionBar(String prompt, PlayerEntity player, MinecraftServer server) {
+    public void askAtActionBar(String prompt, PlayerEntity player, VillagerEntity villager, MinecraftServer server) {
         // Run the entire ask process asynchronously
         server.execute(() -> {
             StringBuilder buffer = new StringBuilder();
-            int maxLength = 70;
+            int maxLength = 70;  // Max amount of char to display on the action bar. Excess characters are truncated FIFO.
 
-            // Start the LLM request in a background thread
+            // Start the whole LLM request thing in a background thread
             new Thread(() -> {
-                this.ask(prompt, chunk -> {
+                // Play a villager trade sound so mimic talking
+                villager.playSound(SoundEvents.ENTITY_VILLAGER_TRADE, 2.0F, villager.getSoundPitch());
+
+                // Send an LLM request and pass in a function chunk -> {} which gets called for each chunk streamed
+                this.ask(prompt, player.getUuidAsString(), villager.getUuidAsString(), chunk -> {
                     // Process chunks in the background
                     buffer.append(chunk);
                     if (buffer.length() > maxLength) {
                         buffer.delete(0, buffer.length() - maxLength);
                     }
                     // Send buffered LLM response to Minecraft's action bar (on the main thread)
-                    server.execute(() -> {
-                        player.sendMessage(Text.literal(buffer.toString()).styled(style -> style.withItalic(false)), true);
-                    });
+                    player.sendMessage(Text.literal(buffer.toString()).styled(style -> style.withItalic(false)), true);
                 });
+
             }).start();
         });
     }
